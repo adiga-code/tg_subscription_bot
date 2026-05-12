@@ -19,7 +19,7 @@ def create_payment(
 ) -> Dict[str, Any]:
     """Create a YuKassa payment. Returns dict with 'id' and 'confirmation_url'."""
     idempotency_key = str(uuid.uuid4())
-
+    amount = 10
     payment = Payment.create(
         {
             "amount": {"value": f"{amount}.00", "currency": "RUB"},
