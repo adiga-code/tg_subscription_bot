@@ -69,7 +69,6 @@ async def activate_subscription(
     try:
         invite = await bot.create_chat_invite_link(
             chat_id=config.CHANNEL_ID,
-            member_limit=1,
             name=f"sub_{user_id}",
         )
         source = "вручную администратором" if manual else f"за тариф «{plan['name']}»"
