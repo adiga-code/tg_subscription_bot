@@ -68,7 +68,7 @@ async def activate_subscription(
     expires_str = expires_at.strftime("%d.%m.%Y")
     try:
         invite = await bot.create_chat_invite_link(
-            chat_id=config.CHANNEL_ID,
+            chat_id=str(config.CHANNEL_ID),
             name=f"sub_{user_id}",
         )
         source = "вручную администратором" if manual else f"за тариф «{plan['name']}»"
