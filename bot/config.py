@@ -21,6 +21,7 @@ class Config:
     SUPPORT_USERNAME: str = field(default_factory=lambda: os.getenv("SUPPORT_USERNAME", ""))
     WEBHOOK_PORT: int = field(default_factory=lambda: int(os.getenv("WEBHOOK_PORT", "8080")))
     BASE_URL: str = field(default_factory=lambda: os.getenv("BASE_URL", "https://t.me"))
+    TEST_MODE: bool = field(default_factory=lambda: os.getenv("TEST_MODE", "false").lower() == "true")
 
 
 PLANS = {
@@ -31,3 +32,8 @@ PLANS = {
 }
 
 config = Config()
+
+# Override prices in test mode
+if config.TEST_MODE:
+    for plan in PLANS.values():
+        plan["price"] = 10

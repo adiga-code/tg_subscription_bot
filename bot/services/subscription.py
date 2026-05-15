@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -6,6 +7,8 @@ from sqlalchemy import select
 
 from bot.config import PLANS, config
 from bot.database import Payment, Subscription, async_session_factory
+
+logger = logging.getLogger(__name__)
 
 
 async def activate_subscription(
@@ -80,6 +83,7 @@ async def activate_subscription(
         await bot.send_document(chat_id=telegram_id, document="files/Balans_raboty_i_zhizni_dlya_frilansera_chek_list_kotoryj_izmenit.zip", caption="чек‑лист «Баланс работы и жизни для фрилансера»")
         await bot.send_document(chat_id=telegram_id, document="files/Kak-poluchit-maksimum-ot-kluba-osoznannogo-razvitiya.zip", caption="гайд «Как получить максимум от клуба»")
     except Exception as e:
+        logger.error("Failed to create invite link for user %d, channel %s: %s", user_id, config.CHANNEL_ID, e)
         await bot.send_message(
             telegram_id,
             f"✅ <b>Подписка активирована</b> до {expires_str}.\n\n"
