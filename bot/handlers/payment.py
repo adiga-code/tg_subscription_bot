@@ -92,6 +92,7 @@ async def check_payment(callback: CallbackQuery, bot: Bot) -> None:
             select(Payment)
             .where(Payment.user_id == user.id, Payment.plan_key == plan_key, Payment.status == "pending")
             .order_by(Payment.created_at.desc())
+            .limit(1)
         )
         payment = payment_result.scalar_one_or_none()
 
