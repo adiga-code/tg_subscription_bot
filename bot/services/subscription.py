@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from aiogram import Bot
@@ -21,7 +21,7 @@ async def activate_subscription(
     manual: bool = False,
 ) -> None:
     plan = PLANS[plan_key]
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     async with async_session_factory() as session:
         # Check if there's already an active subscription to extend
@@ -32,9 +32,10 @@ async def activate_subscription(
         )
         existing = result.scalar_one_or_none()
 
-        if existing and existing.expires_at > now:
-            # Extend from current expiry
-            base = existing.expires_at
+        if existing:
+            base = existing.expires_at.replace(tzinfo=timezone.utc) if existing.expires_at.tzinfo is None else existing.expires_at
+            if base <= now:
+                base = now
         else:
             base = now
 
@@ -70,7 +71,6 @@ async def activate_subscription(
     try:
         invite = await bot.create_chat_invite_link(
             chat_id=str(config.CHANNEL_ID),
-            member_limit=1,
             name=f"sub_{user_id}",
             expire_date=expires_at,
         )
