@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from aiogram import Bot
+from aiogram.types import FSInputFile
 from sqlalchemy import select
 
 from bot.config import PLANS, config
@@ -69,17 +70,20 @@ async def activate_subscription(
     try:
         invite = await bot.create_chat_invite_link(
             chat_id=str(config.CHANNEL_ID),
+            member_limit=1,
+            name=f"sub_{user_id}",
+            expire_date=expires_at,
         )
         source = "вручную администратором" if manual else f"за тариф «{plan['name']}»"
         await bot.send_photo(
             chat_id=telegram_id,
-            photo="files/after_buying.jpg",
+            photo=FSInputFile("files/after_buying.jpg"),
             caption=f"✅ <b>Оплата прошла успешно! Добро пожаловать в клуб!</b>\n\n<i>Что дальше:</i>\nДобавься в наш закрытый чат по ссылке: {invite.invite_link}\n\nСкачай стартовый пакет материалов👇🏻 \n\nНачинай знакомиться, а бот расскажет о ближайших активностях!",
         )
         # Send additional materials
-        await bot.send_photo(chat_id=telegram_id, photo="files/IMG_2339.JPG", caption="ТРЕКЕР ПОЛЕЗНЫХ ПРИВЫЧЕК:")
-        await bot.send_document(chat_id=telegram_id, document="files/Balans_raboty_i_zhizni_dlya_frilansera_chek_list_kotoryj_izmenit.zip", caption="чек‑лист «Баланс работы и жизни для фрилансера»")
-        await bot.send_document(chat_id=telegram_id, document="files/Kak-poluchit-maksimum-ot-kluba-osoznannogo-razvitiya.zip", caption="гайд «Как получить максимум от клуба»")
+        await bot.send_photo(chat_id=telegram_id, photo=FSInputFile("files/IMG_2339.JPG"), caption="ТРЕКЕР ПОЛЕЗНЫХ ПРИВЫЧЕК:")
+        await bot.send_document(chat_id=telegram_id, document=FSInputFile("files/Balans_raboty_i_zhizni_dlya_frilansera_chek_list_kotoryj_izmenit.zip"), caption="чек‑лист «Баланс работы и жизни для фрилансера»")
+        await bot.send_document(chat_id=telegram_id, document=FSInputFile("files/Kak-poluchit-maksimum-ot-kluba-osoznannogo-razvitiya.zip"), caption="гайд «Как получить максимум от клуба»")
     except Exception as e:
         logger.error("Failed to create invite link for user %d, channel %s: %s", user_id, config.CHANNEL_ID, e)
         await bot.send_message(
