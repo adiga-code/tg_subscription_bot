@@ -71,7 +71,6 @@ async def activate_subscription(
             chat_id=str(config.CHANNEL_ID),
             member_limit=1,
             name=f"sub_{user_id}",
-            expire_date=int(expires_at.timestamp()),
         )
         source = "вручную администратором" if manual else f"за тариф «{plan['name']}»"
         await bot.send_photo(
