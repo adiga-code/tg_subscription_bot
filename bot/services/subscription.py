@@ -71,6 +71,7 @@ async def activate_subscription(
     try:
         invite = await bot.create_chat_invite_link(
             chat_id=str(config.CHANNEL_ID),
+            member_limit=1,
             name=f"sub_{user_id}",
             expire_date=expires_at,
         )
