@@ -3,7 +3,7 @@ from typing import AsyncGenerator
 
 from sqlalchemy import (
     BigInteger, Boolean, Column, DateTime, ForeignKey,
-    Integer, Numeric, String, Text, func,
+    Integer, Numeric, String, Text, func, text,
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, relationship
@@ -27,6 +27,7 @@ class User(Base):
     first_name = Column(String(255), nullable=True)
     last_name = Column(String(255), nullable=True)
     email = Column(String(255), nullable=True)
+    role = Column(String(50), nullable=True)
     is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -67,6 +68,10 @@ class Payment(Base):
 async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        try:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(50)"))
+        except Exception:
+            pass
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:

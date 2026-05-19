@@ -26,9 +26,6 @@ class Config:
 
 PLANS = {
     "1m": {"name": "1 месяц", "months": 1, "price": 2499, "save": None},
-    "3m": {"name": "3 месяца", "months": 3, "price": 6499, "save": "Экономия 13%"},
-    "6m": {"name": "6 месяцев", "months": 6, "price": 11999, "save": "Экономия 20%"},
-    "1y": {"name": "1 год", "months": 12, "price": 21999, "save": "Экономия 27%"},
 }
 
 config = Config()
