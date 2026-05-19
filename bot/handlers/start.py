@@ -10,6 +10,7 @@ from bot.keyboards import (
     admin_menu,
     main_menu,
     pay_participant_keyboard,
+    resident_application_keyboard,
     role_selection_keyboard,
 )
 from bot.states import ResidentQuestionnaire
@@ -192,7 +193,11 @@ async def questionnaire_contacts(message: Message, state: FSMContext, bot: Bot) 
     )
     for admin_id in config.ADMIN_IDS:
         try:
-            await bot.send_message(admin_id, admin_text)
+            await bot.send_message(
+                admin_id,
+                admin_text,
+                reply_markup=resident_application_keyboard(message.from_user.id),
+            )
         except Exception:
             pass
 

@@ -11,6 +11,7 @@ from bot.keyboards import (
     admin_panel_keyboard,
     admin_plan_keyboard,
     confirm_broadcast_keyboard,
+    resident_application_keyboard,
 )
 from bot.services.subscription import activate_subscription, revoke_subscription
 from bot.states import AdminBroadcast, AdminDelete, AdminGrant
@@ -48,13 +49,13 @@ async def admin_users(callback: CallbackQuery) -> None:
     lines = ["👥 <b>Пользователи (последние 50)</b>\n"]
     for user, sub in rows:
         name = user.first_name or "—"
-        un = f"@{user.username}" if user.username else f"id:{user.telegram_id}"
+        un = f"@{user.username}" if user.username else "—"
         if sub:
             exp = sub.expires_at.strftime("%d.%m.%Y")
             status = f"✅ до {exp}"
         else:
             status = "❌ нет"
-        lines.append(f"• {name} ({un}) — {status}")
+        lines.append(f"• {name} ({un}) <code>{user.telegram_id}</code> — {status}")
 
     await callback.message.edit_text("\n".join(lines), reply_markup=admin_panel_keyboard())
 
@@ -274,3 +275,50 @@ async def admin_delete_user(message: Message, state: FSMContext) -> None:
         "Теперь он может заново пройти регистрацию через /start.",
         reply_markup=admin_panel_keyboard(),
     )
+
+
+# ─── Resident application actions ────────────────────────────────────────────
+
+@router.callback_query(ADMIN_ONLY, F.data.startswith("res_grant:"))
+async def resident_grant(callback: CallbackQuery, bot: Bot) -> None:
+    tg_id = int(callback.data.split(":")[1])
+
+    async with async_session_factory() as session:
+        result = await session.execute(select(User).where(User.telegram_id == tg_id))
+        user = result.scalar_one_or_none()
+
+    if not user:
+        await callback.answer("Пользователь не найден в базе.", show_alert=True)
+        return
+
+    await activate_subscription(
+        user_id=user.id,
+        telegram_id=tg_id,
+        plan_key="1m",
+        yukassa_payment_id=None,
+        bot=bot,
+        manual=True,
+    )
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.answer(
+        f"✅ Подписка выдана резиденту <b>{user.first_name or tg_id}</b> (<code>{tg_id}</code>)."
+    )
+    await callback.answer()
+
+
+@router.callback_query(ADMIN_ONLY, F.data.startswith("res_reject:"))
+async def resident_reject(callback: CallbackQuery, bot: Bot) -> None:
+    tg_id = int(callback.data.split(":")[1])
+
+    try:
+        await bot.send_message(
+            tg_id,
+            "К сожалению, ваша заявка на статус резидента не была одобрена. "
+            "Если у вас есть вопросы — обратитесь в поддержку.",
+        )
+    except Exception:
+        pass
+
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.answer(f"❌ Заявка резидента <code>{tg_id}</code> отклонена. Пользователь уведомлён.")
+    await callback.answer()
