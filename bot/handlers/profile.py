@@ -58,5 +58,5 @@ async def show_profile(message: Message) -> None:
 
 
 def _plan_name(plan_key: str) -> str:
-    names = {"1m": "1 месяц", "3m": "3 месяца", "6m": "6 месяцев", "1y": "1 год"}
+    names = {"1m": "1 месяц"}
     return names.get(plan_key, plan_key)

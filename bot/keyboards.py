@@ -31,6 +31,19 @@ def remove_keyboard() -> ReplyKeyboardRemove:
     return ReplyKeyboardRemove()
 
 
+def role_selection_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="1️⃣ Я резидент", callback_data="role:resident")],
+        [InlineKeyboardButton(text="2️⃣ Я участник", callback_data="role:participant")],
+    ])
+
+
+def pay_participant_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💳 Оплатить подписку — 2 499 ₽/мес.", callback_data="pay:1m")],
+    ])
+
+
 def plans_keyboard() -> InlineKeyboardMarkup:
     buttons = []
     for key, plan in PLANS.items():
@@ -47,7 +60,6 @@ def pay_button(plan_key: str) -> InlineKeyboardMarkup:
             text=f"💳 Оплатить {plan['price']:,} ₽".replace(",", " "),
             callback_data=f"pay:{plan_key}",
         )],
-        [InlineKeyboardButton(text="◀️ Назад к тарифам", callback_data="back:plans")],
     ])
 
 
@@ -78,6 +90,7 @@ def admin_panel_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="📊 Статистика", callback_data="admin:stats")],
         [InlineKeyboardButton(text="✅ Выдать подписку", callback_data="admin:grant")],
         [InlineKeyboardButton(text="❌ Отозвать подписку", callback_data="admin:revoke")],
+        [InlineKeyboardButton(text="🗑️ Удалить пользователя", callback_data="admin:delete")],
         [InlineKeyboardButton(text="📢 Рассылка", callback_data="admin:broadcast")],
     ])
 

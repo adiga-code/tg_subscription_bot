@@ -3,7 +3,7 @@ from datetime import datetime
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 
 from bot.config import PLANS, config
 from bot.database import Payment, Subscription, User, async_session_factory
@@ -13,7 +13,7 @@ from bot.keyboards import (
     confirm_broadcast_keyboard,
 )
 from bot.services.subscription import activate_subscription, revoke_subscription
-from bot.states import AdminBroadcast, AdminGrant
+from bot.states import AdminBroadcast, AdminDelete, AdminGrant
 
 router = Router()
 
@@ -228,3 +228,49 @@ async def admin_broadcast_confirm(callback: CallbackQuery, state: FSMContext, bo
 async def admin_broadcast_cancel(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     await callback.message.edit_text("Рассылка отменена.", reply_markup=admin_panel_keyboard())
+
+
+# ─── Delete user ──────────────────────────────────────────────────────────────
+
+@router.callback_query(ADMIN_ONLY, F.data == "admin:delete")
+async def admin_delete_start(callback: CallbackQuery, state: FSMContext) -> None:
+    await state.clear()
+    await callback.message.edit_text(
+        "Введите <b>Telegram ID</b> пользователя, которого нужно удалить из базы:\n\n"
+        "<i>После удаления пользователь сможет заново зарегистрироваться через /start.</i>"
+    )
+    await state.set_state(AdminDelete.waiting_user_id)
+
+
+@router.message(ADMIN_ONLY, AdminDelete.waiting_user_id)
+async def admin_delete_user(message: Message, state: FSMContext) -> None:
+    try:
+        tg_id = int(message.text.strip())
+    except ValueError:
+        await message.answer("Введите числовой Telegram ID:")
+        return
+
+    async with async_session_factory() as session:
+        result = await session.execute(select(User).where(User.telegram_id == tg_id))
+        user = result.scalar_one_or_none()
+
+        if not user:
+            await message.answer(
+                f"Пользователь с Telegram ID {tg_id} не найден в базе.",
+                reply_markup=admin_panel_keyboard(),
+            )
+            await state.clear()
+            return
+
+        user_name = user.first_name or str(tg_id)
+        await session.execute(delete(Payment).where(Payment.user_id == user.id))
+        await session.execute(delete(Subscription).where(Subscription.user_id == user.id))
+        await session.delete(user)
+        await session.commit()
+
+    await state.clear()
+    await message.answer(
+        f"✅ Пользователь <b>{user_name}</b> (tg_id: {tg_id}) удалён из базы.\n"
+        "Теперь он может заново пройти регистрацию через /start.",
+        reply_markup=admin_panel_keyboard(),
+    )
