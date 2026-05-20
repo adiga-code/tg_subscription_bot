@@ -5,7 +5,7 @@ from aiogram.types import CallbackQuery, FSInputFile, Message
 from sqlalchemy import select
 
 from bot.config import config
-from bot.database import User, async_session_factory
+from bot.database import Subscription, User, async_session_factory
 from bot.keyboards import (
     admin_menu,
     main_menu,
@@ -16,6 +16,20 @@ from bot.keyboards import (
 from bot.states import ResidentQuestionnaire
 
 router = Router()
+
+WELCOME_CAPTION = (
+    "<b>Привет!</b> <i>Я бот клуба осознанного развития для фрилансеров.\n</i>\n"
+    "<b>Здесь ты найдёшь:</b>\n"
+    "• регулярные вебинары и мастер‑классы;\n"
+    "• челленджи по продуктивности и ЗОЖ;\n"
+    "• сообщество единомышленников;\n"
+    "• эксклюзивные бонусы и скидки.\n\n"
+    "<b>Выбери, кто ты:</b>\n"
+    '<tg-emoji emoji-id="5969639928781344216">1️⃣</tg-emoji>'
+    "Резидент клуба — эксперт, готовый делиться опытом и участвовать в развитии сообщества.\n"
+    '<tg-emoji emoji-id="5969956094208904688">2️⃣</tg-emoji>'
+    "Участник клуба — фрилансер, который хочет развиваться и получать новые знания."
+)
 
 
 async def get_or_create_user(
@@ -46,40 +60,17 @@ async def get_or_create_user(
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext) -> None:
     await state.clear()
-
-    user = await get_or_create_user(
+    await get_or_create_user(
         tg_id=message.from_user.id,
         username=message.from_user.username,
         first_name=message.from_user.first_name,
         last_name=message.from_user.last_name,
     )
-
-    name = message.from_user.first_name or "друг"
-
-    if user.role is None:
-        await message.answer_photo(
-            photo=FSInputFile("files/main.jpg"),
-            caption=(
-                "<b>Привет!</b> <i>Я бот клуба осознанного развития для фрилансеров.\n</i>\n"
-                "<b>Здесь ты найдёшь:</b>\n"
-                "• регулярные вебинары и мастер‑классы;\n"
-                "• челленджи по продуктивности и ЗОЖ;\n"
-                "• сообщество единомышленников;\n"
-                "• эксклюзивные бонусы и скидки.\n\n"
-                "<b>Выбери, кто ты:</b>\n"
-                '<tg-emoji emoji-id="5969639928781344216">1️⃣</tg-emoji>'
-                "Резидент клуба — эксперт, готовый делиться опытом и участвовать в развитии сообщества.\n"
-                '<tg-emoji emoji-id="5969956094208904688">2️⃣</tg-emoji>'
-                "Участник клуба — фрилансер, который хочет развиваться и получать новые знания."
-            ),
-            reply_markup=role_selection_keyboard(),
-        )
-    else:
-        kb = admin_menu() if user.is_admin else main_menu()
-        await message.answer(
-            f"👋 С возвращением, <b>{name}</b>!\n\nВыберите раздел:",
-            reply_markup=kb,
-        )
+    await message.answer_photo(
+        photo=FSInputFile("files/main.jpg"),
+        caption=WELCOME_CAPTION,
+        reply_markup=role_selection_keyboard(),
+    )
 
 
 # ─── Role selection callbacks ─────────────────────────────────────────────────
@@ -99,11 +90,12 @@ async def choose_resident(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
 
     if already_resident:
-        # Already submitted questionnaire — go straight to payment
-        await callback.message.edit_text(
-            "📋 <b>Подписка клуба</b>\n\n"
-            "Стоимость — <b>2 499 ₽/мес.</b>\n\n"
-            "Нажмите «Оплатить», чтобы получить доступ к закрытому сообществу.",
+        await callback.message.edit_caption(
+            caption=(
+                "📋 <b>Подписка клуба</b>\n\n"
+                "Стоимость — <b>2 499 ₽/мес.</b>\n\n"
+                "Нажмите «Оплатить», чтобы получить доступ к закрытому сообществу."
+            ),
             reply_markup=pay_participant_keyboard(),
         )
         return
@@ -137,6 +129,28 @@ async def choose_participant(callback: CallbackQuery) -> None:
             user.role = "participant"
             await session.commit()
 
+        active_sub = None
+        if user:
+            sub_result = await session.execute(
+                select(Subscription).where(
+                    Subscription.user_id == user.id,
+                    Subscription.is_active == True,
+                )
+            )
+            active_sub = sub_result.scalar_one_or_none()
+
+    await callback.answer()
+
+    if active_sub:
+        kb = admin_menu() if user.is_admin else main_menu()
+        name = callback.from_user.first_name or "друг"
+        await callback.message.delete()
+        await callback.message.answer(
+            f"👋 С возвращением, <b>{name}</b>!\n\nВыберите раздел:",
+            reply_markup=kb,
+        )
+        return
+
     await callback.message.delete()
     await callback.message.answer(
         '<b>Здорово, что ты с нами!</b><tg-emoji emoji-id="5330356071364046086">🤩</tg-emoji> '
@@ -150,7 +164,6 @@ async def choose_participant(callback: CallbackQuery) -> None:
         "<b>Для вступления в клуб оплати подписку:</b>",
         reply_markup=pay_participant_keyboard(),
     )
-    await callback.answer()
 
 
 # ─── Resident questionnaire ───────────────────────────────────────────────────
