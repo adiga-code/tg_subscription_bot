@@ -91,9 +91,22 @@ async def choose_resident(callback: CallbackQuery, state: FSMContext) -> None:
     async with async_session_factory() as session:
         result = await session.execute(select(User).where(User.telegram_id == tg_id))
         user = result.scalar_one_or_none()
+        already_resident = user and user.role == "resident"
         if user:
             user.role = "resident"
             await session.commit()
+
+    await callback.answer()
+
+    if already_resident:
+        # Already submitted questionnaire — go straight to payment
+        await callback.message.edit_text(
+            "📋 <b>Подписка клуба</b>\n\n"
+            "Стоимость — <b>2 499 ₽/мес.</b>\n\n"
+            "Нажмите «Оплатить», чтобы получить доступ к закрытому сообществу.",
+            reply_markup=pay_participant_keyboard(),
+        )
+        return
 
     await callback.message.delete()
     await callback.message.answer_photo(
@@ -111,7 +124,6 @@ async def choose_resident(callback: CallbackQuery, state: FSMContext) -> None:
     )
     await callback.message.answer("Введите ваше <b>имя и фамилию</b>:")
     await state.set_state(ResidentQuestionnaire.waiting_name)
-    await callback.answer()
 
 
 @router.callback_query(F.data == "role:participant")
