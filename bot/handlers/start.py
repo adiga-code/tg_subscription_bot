@@ -175,21 +175,28 @@ async def questionnaire_value(message: Message, state: FSMContext) -> None:
 
 
 @router.message(ResidentQuestionnaire.waiting_contacts)
-async def questionnaire_contacts(message: Message, state: FSMContext, bot: Bot) -> None:
+async def questionnaire_contacts(message: Message, state: FSMContext) -> None:
     await state.update_data(contacts=message.text.strip())
+    await message.answer("Ссылка или ник в <b>инстаграм</b>:")
+    await state.set_state(ResidentQuestionnaire.waiting_instagram)
+
+
+@router.message(ResidentQuestionnaire.waiting_instagram)
+async def questionnaire_instagram(message: Message, state: FSMContext, bot: Bot) -> None:
+    await state.update_data(instagram=message.text.strip())
     data = await state.get_data()
     await state.clear()
 
-    # Notify admins
     username = f"@{message.from_user.username}" if message.from_user.username else f"id:{message.from_user.id}"
     admin_text = (
         "📋 <b>Новая заявка резидента</b>\n\n"
-        f"👤 {username} (tg_id: {message.from_user.id})\n"
+        f"👤 {username} (<code>{message.from_user.id}</code>)\n"
         f"Имя: {data.get('name', '—')}\n"
         f"Профессия: {data.get('profession', '—')}\n"
         f"Опыт: {data.get('experience', '—')} лет\n"
         f"Польза для клуба: {data.get('value', '—')}\n"
-        f"Контакты: {data.get('contacts', '—')}"
+        f"Контакты: {data.get('contacts', '—')}\n"
+        f"Инстаграм: {data.get('instagram', '—')}"
     )
     for admin_id in config.ADMIN_IDS:
         try:

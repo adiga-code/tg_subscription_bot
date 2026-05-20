@@ -281,6 +281,7 @@ async def admin_delete_user(message: Message, state: FSMContext) -> None:
 
 @router.callback_query(ADMIN_ONLY, F.data.startswith("res_grant:"))
 async def resident_grant(callback: CallbackQuery, bot: Bot) -> None:
+    from bot.keyboards import pay_participant_keyboard
     tg_id = int(callback.data.split(":")[1])
 
     async with async_session_factory() as session:
@@ -291,17 +292,21 @@ async def resident_grant(callback: CallbackQuery, bot: Bot) -> None:
         await callback.answer("Пользователь не найден в базе.", show_alert=True)
         return
 
-    await activate_subscription(
-        user_id=user.id,
-        telegram_id=tg_id,
-        plan_key="1m",
-        yukassa_payment_id=None,
-        bot=bot,
-        manual=True,
-    )
+    try:
+        await bot.send_message(
+            tg_id,
+            "🎉 <b>Ваша заявка одобрена!</b>\n\n"
+            "Добро пожаловать в клуб осознанного развития.\n"
+            "Для получения доступа оплати подписку:",
+            reply_markup=pay_participant_keyboard(),
+        )
+    except Exception:
+        await callback.answer("Не удалось отправить сообщение пользователю.", show_alert=True)
+        return
+
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.answer(
-        f"✅ Подписка выдана резиденту <b>{user.first_name or tg_id}</b> (<code>{tg_id}</code>)."
+        f"✅ Резиденту <b>{user.first_name or tg_id}</b> (<code>{tg_id}</code>) отправлена ссылка на оплату."
     )
     await callback.answer()
 

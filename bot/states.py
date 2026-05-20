@@ -11,6 +11,7 @@ class ResidentQuestionnaire(StatesGroup):
     waiting_experience = State()
     waiting_value = State()
     waiting_contacts = State()
+    waiting_instagram = State()
 
 
 class PaymentFlow(StatesGroup):
