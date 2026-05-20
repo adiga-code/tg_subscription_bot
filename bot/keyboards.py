@@ -105,7 +105,7 @@ def admin_plan_keyboard() -> InlineKeyboardMarkup:
 def resident_application_keyboard(tg_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="✅ Выдать подписку", callback_data=f"res_grant:{tg_id}"),
+            InlineKeyboardButton(text="✅ Одобрить", callback_data=f"res_grant:{tg_id}"),
             InlineKeyboardButton(text="❌ Отклонить", callback_data=f"res_reject:{tg_id}"),
         ]
     ])
