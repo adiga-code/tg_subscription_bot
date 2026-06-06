@@ -90,12 +90,11 @@ async def choose_resident(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
 
     if already_resident:
-        await callback.message.edit_caption(
-            caption=(
-                "📋 <b>Подписка клуба</b>\n\n"
-                "Стоимость — <b>2 499 ₽/мес.</b>\n\n"
-                "Нажмите «Оплатить», чтобы получить доступ к закрытому сообществу."
-            ),
+        await callback.answer()
+        await callback.message.answer(
+            "📋 <b>Подписка резидента</b>\n\n"
+            "Стоимость — <b>2 499 ₽/мес.</b>\n\n"
+            "Нажмите «Оплатить», чтобы получить доступ к закрытому сообществу.",
             reply_markup=pay_participant_keyboard(),
         )
         return
