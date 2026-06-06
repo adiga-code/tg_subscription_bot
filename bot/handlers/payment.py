@@ -49,8 +49,9 @@ async def _create_and_send_payment(
         session.add(payment)
         await session.commit()
 
+    role_label = "резидента" if user.role == "resident" else "участника"
     await message.answer(
-        f"💳 <b>Оплата подписки</b>\n\n"
+        f"💳 <b>Оплата подписки {role_label}</b>\n\n"
         f"Сумма: <b>{plan['price']:,} ₽/мес.</b>\n\n".replace(",", " ") +
         "Нажмите кнопку ниже для перехода на страницу оплаты.\n"
         "После оплаты нажмите «Я оплатил» — мы проверим платёж и выдадим доступ.",
@@ -80,7 +81,11 @@ async def initiate_payment(callback: CallbackQuery, state: FSMContext, bot: Bot)
         await callback.answer()
         return
 
-    await callback.message.edit_text("⏳ Создаём ссылку на оплату...")
+    await callback.answer("⏳ Создаём ссылку на оплату…")
+    try:
+        await callback.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
     await _create_and_send_payment(bot, callback.message, user, plan_key)
 
 
@@ -170,9 +175,10 @@ async def check_payment(callback: CallbackQuery, bot: Bot) -> None:
             reply_markup=pay_button(plan_key),
         )
     else:
-        await callback.answer(
-            "Платёж ещё не завершён. Если вы уже оплатили — подождите минуту и нажмите снова.",
-            show_alert=True,
+        await callback.answer()
+        await callback.message.answer(
+            "⏳ Оплата ещё не прошла.\n\n"
+            "Если вы уже оплатили — подождите немного и нажмите «✅ Я оплатил» снова."
         )
 
 
