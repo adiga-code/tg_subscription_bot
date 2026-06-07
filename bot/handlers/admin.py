@@ -315,6 +315,13 @@ async def resident_grant(callback: CallbackQuery, bot: Bot) -> None:
 async def resident_reject(callback: CallbackQuery, bot: Bot) -> None:
     tg_id = int(callback.data.split(":")[1])
 
+    async with async_session_factory() as session:
+        result = await session.execute(select(User).where(User.telegram_id == tg_id))
+        user = result.scalar_one_or_none()
+        if user:
+            user.role = None
+            await session.commit()
+
     try:
         await bot.send_message(
             tg_id,
